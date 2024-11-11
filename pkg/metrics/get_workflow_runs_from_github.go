@@ -45,6 +45,8 @@ func getFieldValue(repo string, run github.WorkflowRun, field string) string {
 		return *run.Event
 	case "status":
 		return *run.Status
+	case "conclusion":
+		return run.GetConclusion()
 	}
 	log.Printf("Tried to fetch invalid field '%s'", field)
 	return ""
@@ -109,21 +111,41 @@ func getWorkflowRunsFromGithub() {
 		for _, repo := range repositories {
 			r := strings.Split(repo, "/")
 			runs := getRecentWorkflowRuns(r[0], r[1])
-
 			for _, run := range runs {
 				var s float64 = 0
-				if run.GetConclusion() == "success" {
+				switch run.GetConclusion() {
+				case "completed":
 					s = 1
-				} else if run.GetConclusion() == "skipped" {
+				case "action_required":
 					s = 2
-				} else if run.GetConclusion() == "in_progress" {
+				case "cancelled":
 					s = 3
-				} else if run.GetConclusion() == "queued" {
+				case "failure":
 					s = 4
+				case "neutral":
+					s = 5
+				case "skipped":
+					s = 6
+				case "stale":
+					s = 7
+				case "success":
+					s = 8
+				case "timed_out":
+					s = 9
+				case "in_progress":
+					s = 10
+				case "queued":
+					s = 11
+				case "requested":
+					s = 12
+				case "waiting":
+					s = 13
+				case "pending":
+					s = 14
+				default:
+					s = 0 // unknown status
 				}
-
 				fields := getRelevantFields(repo, run)
-
 				workflowRunStatusGauge.WithLabelValues(fields...).Set(s)
 
 				var run_usage *github.WorkflowRunUsage = nil
@@ -140,7 +162,6 @@ func getWorkflowRunsFromGithub() {
 				}
 			}
 		}
-
 		time.Sleep(time.Duration(config.Github.Refresh) * time.Second)
 	}
 }
