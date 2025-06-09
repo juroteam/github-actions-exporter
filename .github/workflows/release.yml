@@ -10,7 +10,7 @@ permissions:
   packages: write
 
 env:
-  REGISTRY: ghcr.io
+  REGISTRY: docker.io
   IMAGE: ${{ github.repository }}
   APP_NAME: github-actions-exporter
 
@@ -38,7 +38,7 @@ jobs:
 
     - name: Build app
       run: CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-X 'main.version=${{ steps.version.outputs.full }}'" -o bin/${{ env.APP_NAME }} .
-    
+
     - name: Generate MD5
       run: md5sum bin/${{ env.APP_NAME }} > bin/${{ env.APP_NAME }}.md5
 
