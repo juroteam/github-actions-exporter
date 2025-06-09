@@ -41,6 +41,7 @@ Authentication can either via a Github Token or the Github App Authentication 3 
 | Github Api URL | github_api_url, url | GITHUB_API_URL | api.github.com | Github API URL (primarily for Github Enterprise usage) |
 | Github Enterprise Name | enterprise_name | ENTERPRISE_NAME | "" | Enterprise name. Needed for enterprise endpoints (/enterprises/{ENTERPRISE_NAME}/*). Currently used to get Enterprise level tunners status |
 | Fields to export | export_fields | EXPORT_FIELDS | repo,id,node_id,head_branch,head_sha,run_number,workflow_id,workflow,event,status | A comma separated list of fields for workflow metrics that should be exported |
+| Export job fields | export_job_fields | EXPORT_JOB_FIELDS | repo,workflow,job_name,conclusion,event | A comma-separated list of fields for job-level metrics that should be exported |
 
 ## Exported stats
 
@@ -93,6 +94,48 @@ Gauge type
 | workflow_id | Workflow ID |
 | workflow | Workflow Name |
 | status | Workflow status (completed/in_progress) |
+
+### github_workflow_job_status
+Gauge type
+
+**Result possibility**
+
+| ID | Description |
+|---|---|
+| 0 | Failure |
+| 1 | Success |
+| 2 | Skipped |
+| 3 | In Progress |
+| 4 | Queued |
+
+**Fields**
+
+| Name | Description |
+|---|---|
+| repo | Repository like \<org>/\<repo> |
+| workflow | Workflow Name |
+| job_name | Name of the job |
+| conclusion | Job conclusion (success/failure/skipped/cancelled) |
+| event | Event type like push/pull_request/... |
+
+### github_workflow_job_duration_seconds
+Gauge type
+
+**Result possibility**
+
+| Gauge | Description |
+|---|---|
+| seconds | Number of seconds that a specific workflow job took time to complete. |
+
+**Fields**
+
+| Name | Description |
+|---|---|
+| repo | Repository like \<org>/\<repo> |
+| workflow | Workflow Name |
+| job_name | Name of the job |
+| conclusion | Job conclusion (success/failure/skipped/cancelled) |
+| event | Event type like push/pull_request/... |
 
 ### github_job
 > :warning: **This is a duplicate of the `github_workflow_run_status` metric that will soon be deprecated, do not use anymore.**
