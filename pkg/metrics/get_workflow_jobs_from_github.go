@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"strings"
+	"strconv"
 	"time"
 
 	"github.com/google/go-github/v45/github"
@@ -23,6 +24,10 @@ func getJobFieldValue(repo string, workflow string, event string, job *github.Wo
 		return job.GetConclusion()
 	case "event":
 		return event
+	case "run_id":
+		return strconv.FormatInt(job.GetRunID(), 10)
+	case "job_id":
+		return strconv.FormatInt(job.GetID(), 10)
 	}
 	log.Printf("Tried to fetch invalid job field '%s'", field)
 	return ""
