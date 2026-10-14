@@ -137,6 +137,23 @@ Gauge type
 | conclusion | Job conclusion (success/failure/skipped/cancelled) |
 | event | Event type like push/pull_request/... |
 
+### github_workflow_jobs_queued
+Gauge type
+
+Number of workflow jobs with status `queued` (waiting for a runner), grouped by repository and the job's `runs-on` labels. Only queued and in-progress runs are inspected; every label combination among their jobs gets a series, 0 when none of them is waiting. Jobs without labels are ignored.
+
+**Fields**
+
+| Name | Description |
+|---|---|
+| repo | Repository like \<org>/\<repo> |
+| labels | Comma-joined `runs-on` labels of the job, e.g. `hetzner-large` or `ubuntu-latest` |
+
+### github_workflow_jobs_queued_oldest_seconds
+Gauge type
+
+Age in seconds of the oldest job still waiting for a runner, with the same fields as `github_workflow_jobs_queued`.
+
 ### github_job
 > :warning: **This is a duplicate of the `github_workflow_run_status` metric that will soon be deprecated, do not use anymore.**
 
@@ -183,6 +200,7 @@ Gauge type
 | orga | Organization name |
 | status | Runner status (online/offline) |
 | busy | Runner busy or not (true/false) |
+| labels | Comma-joined custom labels of the runner, e.g. `hetzner-large` (default labels like self-hosted/Linux/X64 are skipped) |
 
 ### github_runner_enterprise_status
 Gauge type
