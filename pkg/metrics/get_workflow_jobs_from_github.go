@@ -69,6 +69,8 @@ func getJobsForRun(owner string, repo string, runID int64) []*github.WorkflowJob
 // getWorkflowJobsFromGithub - fetch jobs for each workflow run and emit metrics
 func getWorkflowJobsFromGithub() {
 	for {
+		workflowJobStatusGauge.Reset()
+		workflowJobDurationGauge.Reset()
 		for _, repo := range repositories {
 			r := strings.Split(repo, "/")
 			runs := getRecentWorkflowRuns(r[0], r[1])
