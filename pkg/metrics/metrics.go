@@ -23,6 +23,10 @@ var (
 	err                      error
 	workflowRunStatusGauge   *prometheus.GaugeVec
 	workflowRunDurationGauge *prometheus.GaugeVec
+	workflowJobStatusGauge   *prometheus.GaugeVec
+	workflowJobDurationGauge *prometheus.GaugeVec
+	queuedJobsGauge          *prometheus.GaugeVec
+	queuedJobsOldestGauge    *prometheus.GaugeVec
 )
 
 // InitMetrics - register metrics in prometheus lib and start func for monitor
@@ -41,10 +45,42 @@ func InitMetrics() {
 		},
 		strings.Split(config.WorkflowFields, ","),
 	)
+	workflowJobStatusGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "github_workflow_job_status",
+			Help: "Status of each job inside GitHub workflow run",
+		},
+		strings.Split(config.WorkflowJobFields, ","),
+	)
+	workflowJobDurationGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "github_workflow_job_duration_seconds",
+			Help: "Duration of each GitHub workflow job in seconds",
+		},
+		strings.Split(config.WorkflowJobFields, ","),
+	)
+	queuedJobsGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "github_workflow_jobs_queued",
+			Help: "Number of workflow jobs waiting for a runner, by repo and runs-on labels",
+		},
+		[]string{"repo", "labels"},
+	)
+	queuedJobsOldestGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "github_workflow_jobs_queued_oldest_seconds",
+			Help: "Age of the oldest workflow job waiting for a runner, by repo and runs-on labels",
+		},
+		[]string{"repo", "labels"},
+	)
 	prometheus.MustRegister(runnersGauge)
 	prometheus.MustRegister(runnersOrganizationGauge)
 	prometheus.MustRegister(workflowRunStatusGauge)
 	prometheus.MustRegister(workflowRunDurationGauge)
+	prometheus.MustRegister(workflowJobStatusGauge)
+	prometheus.MustRegister(workflowJobDurationGauge)
+	prometheus.MustRegister(queuedJobsGauge)
+	prometheus.MustRegister(queuedJobsOldestGauge)
 	prometheus.MustRegister(workflowBillGauge)
 	prometheus.MustRegister(runnersEnterpriseGauge)
 
@@ -65,6 +101,8 @@ func InitMetrics() {
 	go getRunnersFromGithub()
 	go getRunnersOrganizationFromGithub()
 	go getWorkflowRunsFromGithub()
+	go getWorkflowJobsFromGithub()
+	go getQueuedJobsFromGithub()
 	go getRunnersEnterpriseFromGithub()
 }
 
