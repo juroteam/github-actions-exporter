@@ -3,8 +3,8 @@ package metrics
 import (
 	"context"
 	"log"
-	"strings"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v45/github"
@@ -37,9 +37,49 @@ func getRelevantJobFields(repo string, workflow string, event string, job *githu
 	relevantFields := strings.Split(config.WorkflowJobFields, ",")
 	result := make([]string, len(relevantFields))
 	for i, field := range relevantFields {
-		result[i] = getJobFieldValue(repo, workflow, event,job, field)
+		result[i] = getJobFieldValue(repo, workflow, event, job, field)
 	}
 	return result
+}
+
+// getRelevantStepFields - job labels plus step_name, with "conclusion" holding the step's conclusion
+func getRelevantStepFields(repo string, workflow string, event string, job *github.WorkflowJob, step *github.TaskStep) []string {
+	result := getRelevantJobFields(repo, workflow, event, job)
+	for i, field := range strings.Split(config.WorkflowJobFields, ",") {
+		if field == "conclusion" {
+			result[i] = step.GetConclusion()
+		}
+	}
+	return append(result, step.GetName())
+}
+
+// inAllowList - "*" matches everything; an empty list matches nothing
+func inAllowList(allowed []string, value string) bool {
+	for _, a := range allowed {
+		a = strings.TrimSpace(a)
+		if a == "*" || (a != "" && a == value) {
+			return true
+		}
+	}
+	return false
+}
+
+// shouldExportSteps - step metrics multiply series by steps per job, so both the event and the
+// workflow must be explicitly allowed; unset lists disable step metrics entirely
+func shouldExportSteps(event string, workflow string) bool {
+	return inAllowList(config.StepEvents.Value(), event) && inAllowList(config.StepWorkflows.Value(), workflow)
+}
+
+func emitStepDurations(repo string, workflow string, event string, job *github.WorkflowJob) {
+	for _, step := range job.Steps {
+		start := step.GetStartedAt()
+		end := step.GetCompletedAt()
+		if start.IsZero() || end.IsZero() {
+			continue
+		}
+		fields := getRelevantStepFields(repo, workflow, event, job, step)
+		workflowStepDurationGauge.WithLabelValues(fields...).Set(end.Time.Sub(start.Time).Seconds())
+	}
 }
 
 func getJobsForRun(owner string, repo string, runID int64) []*github.WorkflowJob {
@@ -71,6 +111,7 @@ func getWorkflowJobsFromGithub() {
 	for {
 		workflowJobStatusGauge.Reset()
 		workflowJobDurationGauge.Reset()
+		workflowStepDurationGauge.Reset()
 		for _, repo := range repositories {
 			r := strings.Split(repo, "/")
 			runs := getRecentWorkflowRuns(r[0], r[1])
@@ -78,13 +119,14 @@ func getWorkflowJobsFromGithub() {
 			// Create a map of run IDs to their events
 			runEventMap := make(map[int64]string)
 			for _, run := range runs {
-    			runEventMap[run.GetID()] = run.GetEvent()
+				runEventMap[run.GetID()] = run.GetEvent()
 			}
 
 			for _, run := range runs {
-				event := runEventMap[run.GetID()] 
+				event := runEventMap[run.GetID()]
 				workflowName := getFieldValue(repo, *run, "workflow")
 				jobs := getJobsForRun(r[0], r[1], run.GetID())
+				exportSteps := shouldExportSteps(event, workflowName)
 
 				for _, job := range jobs {
 					fields := getRelevantJobFields(repo, workflowName, event, job)
@@ -104,13 +146,17 @@ func getWorkflowJobsFromGithub() {
 
 					start := job.GetStartedAt()
 					end := job.GetCompletedAt()
-					
+
 					if !start.IsZero() && !end.IsZero() {
 						duration := end.Time.Sub(start.Time).Seconds()
 						workflowJobDurationGauge.WithLabelValues(fields...).Set(duration)
 					} else {
 						log.Printf("Skipping duration metric for job %s in run %d (start or end time missing)", job.GetName(), job.GetRunID())
-					}					
+					}
+
+					if exportSteps {
+						emitStepDurations(repo, workflowName, event, job)
+					}
 				}
 			}
 		}
