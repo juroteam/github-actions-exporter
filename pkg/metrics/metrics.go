@@ -19,14 +19,15 @@ import (
 )
 
 var (
-	client                   *github.Client
-	err                      error
-	workflowRunStatusGauge   *prometheus.GaugeVec
-	workflowRunDurationGauge *prometheus.GaugeVec
-	workflowJobStatusGauge   *prometheus.GaugeVec
-	workflowJobDurationGauge *prometheus.GaugeVec
-	queuedJobsGauge          *prometheus.GaugeVec
-	queuedJobsOldestGauge    *prometheus.GaugeVec
+	client                    *github.Client
+	err                       error
+	workflowRunStatusGauge    *prometheus.GaugeVec
+	workflowRunDurationGauge  *prometheus.GaugeVec
+	workflowJobStatusGauge    *prometheus.GaugeVec
+	workflowJobDurationGauge  *prometheus.GaugeVec
+	workflowStepDurationGauge *prometheus.GaugeVec
+	queuedJobsGauge           *prometheus.GaugeVec
+	queuedJobsOldestGauge     *prometheus.GaugeVec
 )
 
 // InitMetrics - register metrics in prometheus lib and start func for monitor
@@ -59,6 +60,13 @@ func InitMetrics() {
 		},
 		strings.Split(config.WorkflowJobFields, ","),
 	)
+	workflowStepDurationGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "github_workflow_step_duration_seconds",
+			Help: "Duration of each step of a GitHub workflow job in seconds",
+		},
+		append(strings.Split(config.WorkflowJobFields, ","), "step_name"),
+	)
 	queuedJobsGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "github_workflow_jobs_queued",
@@ -79,6 +87,7 @@ func InitMetrics() {
 	prometheus.MustRegister(workflowRunDurationGauge)
 	prometheus.MustRegister(workflowJobStatusGauge)
 	prometheus.MustRegister(workflowJobDurationGauge)
+	prometheus.MustRegister(workflowStepDurationGauge)
 	prometheus.MustRegister(queuedJobsGauge)
 	prometheus.MustRegister(queuedJobsOldestGauge)
 	prometheus.MustRegister(workflowBillGauge)
