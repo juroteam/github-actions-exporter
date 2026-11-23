@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spendesk/github-actions-exporter/pkg/config"
@@ -18,7 +19,7 @@ var (
 			Name: "github_runner_organization_status",
 			Help: "runner status",
 		},
-		[]string{"organization", "os", "name", "id", "busy"},
+		[]string{"organization", "os", "name", "id", "busy", "labels"},
 	)
 )
 
@@ -46,17 +47,28 @@ func getAllOrgRunners(orga string) []*github.Runner {
 	return runners
 }
 
+// customRunnerLabels - comma-joined custom labels of a runner (default labels like self-hosted, Linux, X64 are skipped)
+func customRunnerLabels(runner *github.Runner) string {
+	var labels []string
+	for _, l := range runner.Labels {
+		if l.GetType() == "custom" {
+			labels = append(labels, l.GetName())
+		}
+	}
+	return strings.Join(labels, ",")
+}
+
 // getRunnersOrganizationFromGithub - return information about runners and their status for an organization
 func getRunnersOrganizationFromGithub() {
 	for {
 		for _, orga := range config.Github.Organizations.Value() {
 			runners := getAllOrgRunners(orga)
 			for _, runner := range runners {
+				var online float64 = 0
 				if runner.GetStatus() == "online" {
-					runnersOrganizationGauge.WithLabelValues(orga, *runner.OS, *runner.Name, strconv.FormatInt(runner.GetID(), 10), strconv.FormatBool(runner.GetBusy())).Set(1)
-				} else {
-					runnersOrganizationGauge.WithLabelValues(orga, *runner.OS, *runner.Name, strconv.FormatInt(runner.GetID(), 10), strconv.FormatBool(runner.GetBusy())).Set(0)
+					online = 1
 				}
+				runnersOrganizationGauge.WithLabelValues(orga, *runner.OS, *runner.Name, strconv.FormatInt(runner.GetID(), 10), strconv.FormatBool(runner.GetBusy()), customRunnerLabels(runner)).Set(online)
 			}
 		}
 

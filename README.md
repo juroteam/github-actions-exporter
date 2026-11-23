@@ -41,6 +41,9 @@ Authentication can either via a Github Token or the Github App Authentication 3 
 | Github Api URL | github_api_url, url | GITHUB_API_URL | api.github.com | Github API URL (primarily for Github Enterprise usage) |
 | Github Enterprise Name | enterprise_name | ENTERPRISE_NAME | "" | Enterprise name. Needed for enterprise endpoints (/enterprises/{ENTERPRISE_NAME}/*). Currently used to get Enterprise level tunners status |
 | Fields to export | export_fields | EXPORT_FIELDS | repo,id,node_id,head_branch,head_sha,run_number,workflow_id,workflow,event,status | A comma separated list of fields for workflow metrics that should be exported |
+| Export job fields | export_job_fields | EXPORT_JOB_FIELDS | repo,workflow,job_name,conclusion,event | A comma-separated list of fields for job-level metrics that should be exported |
+| Export step events | export_step_events | EXPORT_STEP_EVENTS | "" (none) | A comma-separated list of run events (like `merge_group,push`) to export step metrics for, or `*` for all. Step metrics are off unless both step env vars are set |
+| Export step workflows | export_step_workflows | EXPORT_STEP_WORKFLOWS | "" (none) | A comma-separated list of workflow names to export step metrics for, or `*` for all. Combined with `EXPORT_STEP_EVENTS` as AND |
 
 ## Exported stats
 
@@ -94,6 +97,81 @@ Gauge type
 | workflow | Workflow Name |
 | status | Workflow status (completed/in_progress) |
 
+### github_workflow_job_status
+Gauge type
+
+**Result possibility**
+
+| ID | Description |
+|---|---|
+| 0 | Failure |
+| 1 | Success |
+| 2 | Skipped |
+| 3 | In Progress |
+| 4 | Queued |
+
+**Fields**
+
+| Name | Description |
+|---|---|
+| repo | Repository like \<org>/\<repo> |
+| workflow | Workflow Name |
+| job_name | Name of the job |
+| conclusion | Job conclusion (success/failure/skipped/cancelled) |
+| event | Event type like push/pull_request/... |
+
+### github_workflow_job_duration_seconds
+Gauge type
+
+**Result possibility**
+
+| Gauge | Description |
+|---|---|
+| seconds | Number of seconds that a specific workflow job took time to complete. |
+
+**Fields**
+
+| Name | Description |
+|---|---|
+| repo | Repository like \<org>/\<repo> |
+| workflow | Workflow Name |
+| job_name | Name of the job |
+| conclusion | Job conclusion (success/failure/skipped/cancelled) |
+| event | Event type like push/pull_request/... |
+
+### github_workflow_step_duration_seconds
+Gauge type
+
+Number of seconds each step of a workflow job took. Steps come from the same jobs API response as the job metrics, so no extra API calls are made. Steps without start or end time (not started yet, or skipped before running) are not exported.
+
+Every step multiplies the series count of the job metrics, so this metric is off by default. Turn it on by setting both `EXPORT_STEP_EVENTS` and `EXPORT_STEP_WORKFLOWS`, either to specific values or to `*`.
+
+**Fields**
+
+All fields from `EXPORT_JOB_FIELDS`, plus:
+
+| Name | Description |
+|---|---|
+| step_name | Name of the step |
+| conclusion | Step conclusion (success/failure/skipped/cancelled) — the step's own, not the job's |
+
+### github_workflow_jobs_queued
+Gauge type
+
+Number of workflow jobs with status `queued` (waiting for a runner), grouped by repository and the job's `runs-on` labels. Only queued and in-progress runs are inspected; every label combination among their jobs gets a series, 0 when none of them is waiting. Jobs without labels are ignored.
+
+**Fields**
+
+| Name | Description |
+|---|---|
+| repo | Repository like \<org>/\<repo> |
+| labels | Comma-joined `runs-on` labels of the job, e.g. `hetzner-large` or `ubuntu-latest` |
+
+### github_workflow_jobs_queued_oldest_seconds
+Gauge type
+
+Age in seconds of the oldest job still waiting for a runner, with the same fields as `github_workflow_jobs_queued`.
+
 ### github_job
 > :warning: **This is a duplicate of the `github_workflow_run_status` metric that will soon be deprecated, do not use anymore.**
 
@@ -140,6 +218,7 @@ Gauge type
 | orga | Organization name |
 | status | Runner status (online/offline) |
 | busy | Runner busy or not (true/false) |
+| labels | Comma-joined custom labels of the runner, e.g. `hetzner-large` (default labels like self-hosted/Linux/X64 are skipped) |
 
 ### github_runner_enterprise_status
 Gauge type

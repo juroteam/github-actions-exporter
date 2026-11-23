@@ -18,10 +18,15 @@ var (
 	Metrics struct {
 		FetchWorkflowRunUsage bool
 	}
-	Port           int
-	Debug          bool
-	EnterpriseName string
-	WorkflowFields string
+	Port              int
+	Debug             bool
+	EnterpriseName    string
+	WorkflowFields    string
+	WorkflowJobFields string
+	// StepEvents - run events (push, merge_group, ...) to export step metrics for; "*" means all, empty means none
+	StepEvents cli.StringSlice
+	// StepWorkflows - workflow names to export step metrics for; "*" means all, empty means none
+	StepWorkflows cli.StringSlice
 )
 
 // InitConfiguration - set configuration from env vars or command parameters
@@ -112,6 +117,25 @@ func InitConfiguration() []cli.Flag {
 			Usage:       "A comma separated list of fields for workflow metrics that should be exported",
 			Value:       "repo,id,node_id,head_branch,head_sha,run_number,workflow_id,workflow,event,status",
 			Destination: &WorkflowFields,
+		},
+		&cli.StringFlag{
+			Name:        "export_job_fields",
+			EnvVars:     []string{"EXPORT_JOB_FIELDS"},
+			Usage:       "A comma separated list of fields for job metrics that should be exported",
+			Value:       "repo,workflow,job_name,conclusion,event,run_id,job_id",
+			Destination: &WorkflowJobFields,
+		},
+		&cli.StringSliceFlag{
+			Name:        "export_step_events",
+			EnvVars:     []string{"EXPORT_STEP_EVENTS"},
+			Usage:       "A comma separated list of run events (like merge_group,push) to export step metrics for, or * for all. Step metrics are off when omitted",
+			Destination: &StepEvents,
+		},
+		&cli.StringSliceFlag{
+			Name:        "export_step_workflows",
+			EnvVars:     []string{"EXPORT_STEP_WORKFLOWS"},
+			Usage:       "A comma separated list of workflow names to export step metrics for, or * for all. Step metrics are off when omitted",
+			Destination: &StepWorkflows,
 		},
 		&cli.BoolFlag{
 			Name:        "fetch_workflow_run_usage",
