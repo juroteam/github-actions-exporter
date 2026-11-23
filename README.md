@@ -42,6 +42,8 @@ Authentication can either via a Github Token or the Github App Authentication 3 
 | Github Enterprise Name | enterprise_name | ENTERPRISE_NAME | "" | Enterprise name. Needed for enterprise endpoints (/enterprises/{ENTERPRISE_NAME}/*). Currently used to get Enterprise level tunners status |
 | Fields to export | export_fields | EXPORT_FIELDS | repo,id,node_id,head_branch,head_sha,run_number,workflow_id,workflow,event,status | A comma separated list of fields for workflow metrics that should be exported |
 | Export job fields | export_job_fields | EXPORT_JOB_FIELDS | repo,workflow,job_name,conclusion,event | A comma-separated list of fields for job-level metrics that should be exported |
+| Export step events | export_step_events | EXPORT_STEP_EVENTS | "" (none) | A comma-separated list of run events (like `merge_group,push`) to export step metrics for, or `*` for all. Step metrics are off unless both step env vars are set |
+| Export step workflows | export_step_workflows | EXPORT_STEP_WORKFLOWS | "" (none) | A comma-separated list of workflow names to export step metrics for, or `*` for all. Combined with `EXPORT_STEP_EVENTS` as AND |
 
 ## Exported stats
 
@@ -136,6 +138,22 @@ Gauge type
 | job_name | Name of the job |
 | conclusion | Job conclusion (success/failure/skipped/cancelled) |
 | event | Event type like push/pull_request/... |
+
+### github_workflow_step_duration_seconds
+Gauge type
+
+Number of seconds each step of a workflow job took. Steps come from the same jobs API response as the job metrics, so no extra API calls are made. Steps without start or end time (not started yet, or skipped before running) are not exported.
+
+Every step multiplies the series count of the job metrics, so this metric is off by default. Turn it on by setting both `EXPORT_STEP_EVENTS` and `EXPORT_STEP_WORKFLOWS`, either to specific values or to `*`.
+
+**Fields**
+
+All fields from `EXPORT_JOB_FIELDS`, plus:
+
+| Name | Description |
+|---|---|
+| step_name | Name of the step |
+| conclusion | Step conclusion (success/failure/skipped/cancelled) — the step's own, not the job's |
 
 ### github_workflow_jobs_queued
 Gauge type

@@ -17,6 +17,8 @@ env:
 #  ENTERPRISE_NAME: "" # Needed for enterprise endpoints (/enterprises/{ENTERPRISE_NAME}/*)
 #  EXPORT_FIELDS: "repo,id,node_id,head_branch,head_sha,run_number,workflow_id,workflow,event,status"  # A comma separated list of fields for workflow metrics that should be exported
 #  EXPORT_JOB_FIELDS: "repo,workflow,job_name,conclusion,event"  # A comma separated list of fields for job metrics that should be exported
+#  EXPORT_STEP_EVENTS: "merge_group"  # Run events to export step metrics for, or "*". Step metrics are off unless both step vars are set
+#  EXPORT_STEP_WORKFLOWS: "PR Checks"  # Workflow names to export step metrics for, or "*"
 #  For the github authentications need to create a secret by default called actions-exporter
 #  for authentication via github personal token
 #                key: github_token
